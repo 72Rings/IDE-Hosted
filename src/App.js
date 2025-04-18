@@ -1,0 +1,90 @@
+import React, { useState } from 'react';
+import 'codemirror/lib/codemirror.css';
+import 'codemirror/theme/dracula.css';
+import 'codemirror/theme/material.css';
+import 'codemirror/theme/mdn-like.css';
+import 'codemirror/theme/the-matrix.css';
+import 'codemirror/theme/night.css';
+
+import 'codemirror/mode/javascript/javascript';
+import 'codemirror/mode/python/python';
+import 'codemirror/mode/clike/clike'; // Covers Java and C++
+
+import { Controlled as CodeMirror } from 'react-codemirror2';
+import axios from 'axios';
+
+const App = () => {
+  const [theme, setTheme] = useState('dracula');
+  const [code, setCode] = useState('');
+  const [language, setLanguage] = useState('javascript');
+  const [output, setOutput] = useState('');
+
+  const handleThemeChange = (event) => setTheme(event.target.value);
+  const handleLanguageChange = (event) => setLanguage(event.target.value);
+
+  // Map display language to CodeMirror mode
+  const getCodeMirrorMode = (lang) => {
+    switch (lang.toLowerCase()) {
+      case 'c++':
+      case 'java':
+        return 'text/x-c++src'; // clike handles both
+      case 'python':
+        return 'python';
+      case 'javascript':
+      default:
+        return 'javascript';
+    }
+  };
+
+  const runCode = async () => {
+    try {
+      const response = await axios.post('http://localhost:5000/run', { language, code });
+      setOutput(response.data.output);
+    } catch (error) {
+      setOutput('Error executing code');
+    }
+  };
+
+  return (
+    <div style={{ padding: '20px', backgroundColor: '#282c34', height: '100vh', color: 'white' }}>
+      <h1>Online Code Editor with Themes</h1>
+
+      <label style={{ marginRight: '10px' }}>Select Theme:</label>
+      <select onChange={handleThemeChange} value={theme}>
+        <option value="dracula">Dracula</option>
+        <option value="material">Material</option>
+        <option value="mdn-like">MDN-like</option>
+        <option value="the-matrix">The Matrix</option>
+        <option value="night">Night</option>
+      </select>
+
+      <label style={{ marginLeft: '20px', marginRight: '10px' }}>Select Language:</label>
+      <select onChange={handleLanguageChange} value={language}>
+        <option value="python">Python</option>
+        <option value="java">Java</option>
+        <option value="c++">C++</option>
+      </select>
+
+      <CodeMirror
+  key={`${theme}-${language}`} // 👈 Force re-render when theme or language changes
+  value={code}
+  options={{
+    mode: getCodeMirrorMode(language),
+    theme: theme,
+    lineNumbers: true,
+  }}
+  onBeforeChange={(editor, data, value) => setCode(value)}
+  editorDidMount={(editor) => {
+    editor.setSize('100%', '400px');
+  }}
+/>
+
+
+      <button onClick={runCode} style={{ marginTop: '10px' }}>Run Code</button>
+
+      <pre style={{ marginTop: '20px' }}>{output}</pre>
+    </div>
+  );
+};
+
+export default App;
